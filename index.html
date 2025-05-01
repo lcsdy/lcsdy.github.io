@@ -148,7 +148,7 @@
             box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
         }
 
-        /* 新增弹窗样式 */
+        /* 弹窗样式 */
         .popup-overlay {
             position: fixed;
             top: 0;
@@ -254,17 +254,17 @@
 
     <div class="custom-alert" id="copyAlert">公众号已复制</div>
 
-    <!-- 新增弹窗结构 -->
+    <!-- 弹窗结构 -->
     <div class="popup-overlay" id="popupOverlay">
         <div class="popup-content">
-            <div class="close-btn" onclick="closePopup()">×</div>
+            <div class="close-btn" id="closeButton">×</div>
             <img src="0905.jpg" class="popup-image" alt="赞赏二维码">
         </div>
     </div>
 
     <script>
         (function(){
-            // 视频控制核心逻辑
+            // 视频控制逻辑
             const video = document.getElementById('bg-video');
             let isPlaying = true;
 
@@ -289,12 +289,6 @@
                 document.getElementById('logo').style.animationPlayState = isPlaying ? 'running' : 'paused';
             };
 
-            video.addEventListener('play', () => {
-                if(video.muted) {
-                    video.muted = false;
-                }
-            });
-
             // 复制功能
             document.getElementById('copyButton').onclick = () => {
                 navigator.clipboard.writeText('LIVE-CS2025').then(() => {
@@ -310,15 +304,16 @@
             }
 
             // 弹窗控制逻辑
+            const overlay = document.getElementById('popupOverlay');
+            const closeBtn = document.getElementById('closeButton');
+
             function showPopup() {
-                const overlay = document.getElementById('popupOverlay');
                 overlay.style.display = 'flex';
                 setTimeout(() => overlay.classList.add('active'), 10);
                 document.body.style.overflow = 'hidden';
             }
 
             function closePopup() {
-                const overlay = document.getElementById('popupOverlay');
                 overlay.classList.remove('active');
                 setTimeout(() => {
                     overlay.style.display = 'none';
@@ -326,9 +321,10 @@
                 }, 400);
             }
 
+            // 事件绑定
             document.querySelector('.popup-trigger').addEventListener('click', showPopup);
-            
-            document.getElementById('popupOverlay').addEventListener('click', function(e) {
+            closeBtn.addEventListener('click', closePopup);
+            overlay.addEventListener('click', function(e) {
                 if(e.target === this) closePopup();
             });
 
