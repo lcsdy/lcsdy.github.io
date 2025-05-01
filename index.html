@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <style>
-        /* 新增社群弹窗样式 */
-        .community-popup {
+        /* 新增弹窗样式 */
+        .popup-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -18,75 +18,108 @@
             z-index: 1000;
         }
 
-        .community-popup.active {
-            display: flex;
-            animation: fadeIn 0.3s;
-        }
-
-        .community-popup-content {
+        .popup-content {
             position: relative;
-            max-width: 85%;
-            border-radius: 16px;
-            overflow: hidden;
-            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            max-width: 80%;
+            max-height: 80vh;
+            animation: bounce 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55);
         }
 
-        .community-qrcode {
+        .popup-img {
             width: 100%;
             height: auto;
-            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
-        @keyframes bounceIn {
+        @keyframes bounce {
             0% { transform: scale(0.7) translateY(50px); opacity: 0; }
-            60% { transform: scale(1.05) translateY(-10px); }
+            60% { transform: scale(1.1) translateY(-10px); }
             80% { transform: scale(0.95); }
             100% { transform: scale(1) translateY(0); opacity: 1; }
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+        /* 结束新增样式 */
     </style>
 </head>
 <body>
-    <!-- 原有body内容保持不变 -->
+    <!-- 原有body结构保持不变 -->
     <div class="main-container">
         <div class="button-group">
-            <a href="0905.jpg" class="action-btn">点击赞赏财神</a>
-            <a href="https://t.me/lcsnbkls" class="action-btn" id="communityBtn">加入财神社群</a>
+            <a href="0905.jpg" class="action-btn">点击进入主页</a>
+            <!-- 修改后的社群按钮 -->
+            <a href="community_qr.jpg" class="action-btn" id="communityBtn">加入赞赏财神</a>
             <button id="copyButton" class="action-btn">点击复制公众号</button>
         </div>
     </div>
 
-    <!-- 新增社群弹窗 -->
-    <div class="community-popup" id="communityPopup">
-        <div class="community-popup-content">
-            <img src="community_qr.jpg" class="community-qrcode" alt="0905.jpg">
+    <!-- 新增弹窗结构 -->
+    <div class="popup-overlay" id="communityPopup">
+        <div class="popup-content">
+            <img src="0905.jpg" class="popup-img" alt="社群二维码">
         </div>
     </div>
 
     <script>
         (function(){
-            // 原有JavaScript逻辑完全保留
-
-            // 新增社群弹窗控制
+            // 新增社群弹窗逻辑
             const communityBtn = document.getElementById('communityBtn');
             const communityPopup = document.getElementById('communityPopup');
 
-            // 点击社群按钮
             communityBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                communityPopup.classList.add('active');
+                e.preventDefault(); // 阻止默认跳转
+                communityPopup.style.display = 'flex';
+                setTimeout(() => communityPopup.style.opacity = 1, 10);
             });
 
-            // 关闭弹窗逻辑
             communityPopup.addEventListener('click', function(e) {
                 if(e.target === this) {
-                    this.classList.remove('active');
+                    this.style.opacity = 0;
+                    setTimeout(() => this.style.display = 'none', 300);
                 }
             });
+
+            // 保留原有所有功能 ---------------------------------
+            const video = document.getElementById('bg-video');
+            let isPlaying = true;
+
+            const initVideo = () => {
+                video.play().then(() => {
+                    video.muted = false;
+                }).catch(() => {
+                    video.muted = true;
+                    video.play();
+                });
+            }
+
+            window.addEventListener('load', initVideo);
+
+            document.getElementById('controlButton').onclick = () => {
+                if(isPlaying) {
+                    video.pause();
+                } else {
+                    video.play();
+                }
+                isPlaying = !isPlaying;
+                document.getElementById('logo').style.animationPlayState = isPlaying ? 'running' : 'paused';
+            };
+
+            video.addEventListener('play', () => {
+                if(video.muted) {
+                    video.muted = false;
+                }
+            });
+
+            document.getElementById('copyButton').onclick = () => {
+                navigator.clipboard.writeText('LIVE-CS2025').then(() => {
+                    const alertBox = document.getElementById('copyAlert');
+                    alertBox.style.display = 'block';
+                    setTimeout(() => alertBox.style.display = 'none', 2000);
+                });
+            };
+
+            if(/MicroMessenger/i.test(navigator.userAgent)) {
+                document.body.innerHTML = `<img src="IMG_5115.jpeg" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);max-width:90%;height:auto;">`;
+            }
         })();
     </script>
 </body>
