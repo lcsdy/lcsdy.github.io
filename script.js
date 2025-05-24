@@ -1,13 +1,14 @@
+// script.js
 "use strict";
 
 const PRIZES = [
-    { id: 1, name: '体验券', prob: 60.0, desc: '免费体验台球1小时' },
-    { id: 2, name: '店长特训', prob: 36.9, desc: '店长一对一指导1小时', dailyLimit: 2 },
-    { id: 3, name: '周会员', prob: 3.0,  desc: '一周会员资格', weeklyLimit: 1 },
+    { id: 1, name: '体验券', prob: 78.0, desc: '免费体验台球1小时' },
+    { id: 2, name: '店长特训', prob: 18.0, desc: '店长一对一指导1小时', dailyLimit: 2 },
+    { id: 3, name: '周会员', prob: 3.9,  desc: '一周会员资格', weeklyLimit: 1 },
     { id: 4, name: '专属球杆', prob: 0.1, desc: '定制台球杆一支', monthlyLimit: 1 }
 ];
 
-const clockwiseOrder = [0, 3, 6, 7, 8, 5, 2, 1];
+const clockwiseOrder = [0, 1, 2, 5, 8, 7, 6, 3];
 const prizeIndexMap = { 1:0, 2:2, 3:6, 4:8 };
 
 class Lottery {
@@ -25,22 +26,25 @@ class Lottery {
         this.bindEvents();
     }
 
+    initStorage() {
+        try {
+            this.history = JSON.parse(localStorage.getItem('lotteryHistory') || '[]');
+            const savedCards = JSON.parse(localStorage.getItem('usedCards') || '[]');
+            this.usedCards = new Set(savedCards);
+            this.updateHistoryDisplay();
+        } catch(e) {
+            console.error('本地存储读取失败:', e);
+            this.history = [];
+            this.usedCards = new Set();
+        }
+    }
+
     initAudio() {
         for(let i = 0; i < 5; i++) {
             const clickAudio = new Audio('./click.mp3');
             this.audioPool.push(clickAudio);
         }
         this.winAudio = new Audio('./win.mp3');
-    }
-
-    initStorage() {
-        try {
-            this.history = JSON.parse(localStorage.getItem('lotteryHistory') || '[]');
-            this.updateHistoryDisplay();
-        } catch(e) {
-            console.error('本地存储读取失败:', e);
-            this.history = [];
-        }
     }
 
     init() {
@@ -52,7 +56,16 @@ class Lottery {
 
     generateCode(prize) {
         const d = new Date();
-        return `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}${d.getHours().toString().padStart(2,'0')}_${prize.id}_${prize.name}`;
+        const timePart = 
+            d.getFullYear().toString() +
+            (d.getMonth() + 1).toString().padStart(2, '0') +
+            d.getDate().toString().padStart(2, '0') +
+            d.getHours().toString().padStart(2, '0') +
+            d.getMinutes().toString().padStart(2, '0');
+        const letters = Array.from(crypto.getRandomValues(new Uint8Array(6)))
+            .map(n => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[n % 24])
+            .join('');
+        return timePart + letters;
     }
 
     updateHistoryDisplay() {
@@ -210,7 +223,7 @@ class Lottery {
                 <div class="modal-content">
                     <div class="modal-body">
                         <h3 style="margin-bottom:15px;text-align:center">请输入卡密</h3>
-                        <input type="text" class="card-input" placeholder="输入卡密开始抽奖" maxlength="10">
+                        <input type="text" class="card-input" placeholder="输入卡密开始抽奖" maxlength="18">
                         <div style="margin-top:20px;text-align:center">
                             <button class="confirm-card action-btn">确认抽奖</button>
                         </div>
@@ -236,16 +249,48 @@ class Lottery {
     }
 
     validateCard(card) {
-        const regex = /^[A-Z]{10}$/;
+        const regex = /^\d{12}[A-Z]{6}$/;
         if(!regex.test(card)) {
             this.showAlert('卡密格式错误');
             return false;
         }
+        
+        // 时间验证
+        const timePart = card.slice(0, 12);
+        const now = new Date();
+        
+        // 解析时间
+        const year = parseInt(timePart.slice(0,4)),
+              month = parseInt(timePart.slice(4,6)) - 1,
+              day = parseInt(timePart.slice(6,8)),
+              hour = parseInt(timePart.slice(8,10)),
+              minute = parseInt(timePart.slice(10,12));
+        const cardDate = new Date(year, month, day, hour, minute);
+
+        // 日期验证
+        if (
+            cardDate.getFullYear() !== now.getFullYear() ||
+            cardDate.getMonth() !== now.getMonth() ||
+            cardDate.getDate() !== now.getDate()
+        ) {
+            this.showAlert('卡密已过期');
+            return false;
+        }
+
+        // 时间差验证
+        const timeDiff = now - cardDate;
+        if (timeDiff < 0 || timeDiff > 300000) {
+            this.showAlert('卡密已失效');
+            return false;
+        }
+
         if(this.usedCards.has(card)) {
             this.showAlert('卡密已使用');
             return false;
         }
+        
         this.usedCards.add(card);
+        localStorage.setItem('usedCards', JSON.stringify([...this.usedCards]));
         return true;
     }
 
