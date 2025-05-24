@@ -28,8 +28,8 @@ class Lottery {
 
     initStorage() {
         try {
-            this.history = JSON.parse(localStorage.getItem('lotteryHistory') || [];
-            const savedCards = JSON.parse(localStorage.getItem('usedCards') || [];
+            this.history = JSON.parse(localStorage.getItem('lotteryHistory') || '[]');
+            const savedCards = JSON.parse(localStorage.getItem('usedCards') || '[]');
             this.usedCards = new Set(savedCards);
             this.updateHistoryDisplay();
         } catch(e) {
@@ -73,7 +73,7 @@ class Lottery {
         this.history.slice(-5).reverse().forEach(record => {
             $list.append(`
                 <div class="history-item">
-                    <span>${record.card} - ${record.name}</span>
+                    <span>${record.code}</span>
                     <button class="copy-btn">📋</button>
                 </div>
             `);
@@ -111,7 +111,7 @@ class Lottery {
         this.$button.on('click', () => this.showCardModal());
         
         $(document).on('click', '.copy-btn', (e) => {
-            const text = $(e.target).prev().text().split(' - ')[0];
+            const text = $(e.target).prev().text();
             navigator.clipboard.writeText(text);
         });
 
@@ -255,9 +255,11 @@ class Lottery {
             return false;
         }
         
+        // 时间验证
         const timePart = card.slice(0, 12);
         const now = new Date();
         
+        // 解析时间
         const year = parseInt(timePart.slice(0,4)),
               month = parseInt(timePart.slice(4,6)) - 1,
               day = parseInt(timePart.slice(6,8)),
@@ -265,6 +267,7 @@ class Lottery {
               minute = parseInt(timePart.slice(10,12));
         const cardDate = new Date(year, month, day, hour, minute);
 
+        // 日期验证
         if (
             cardDate.getFullYear() !== now.getFullYear() ||
             cardDate.getMonth() !== now.getMonth() ||
@@ -274,6 +277,7 @@ class Lottery {
             return false;
         }
 
+        // 时间差验证
         const timeDiff = now - cardDate;
         if (timeDiff < 0 || timeDiff > 300000) {
             this.showAlert('卡密已失效');
@@ -340,9 +344,9 @@ class Lottery {
 
     recordHistory(prize) {
         try {
+            const code = this.generateCode(prize);
             this.history = [...this.history, { 
-                card: this.currentCard,
-                name: prize.name,
+                code,
                 id: prize.id,
                 timestamp: Date.now()
             }].slice(-this.historyLimit);
