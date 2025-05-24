@@ -54,26 +54,12 @@ class Lottery {
         this.audioIndex = 0;
     }
 
-    generateCode(prize) {
-        const d = new Date();
-        const timePart = 
-            d.getFullYear().toString() +
-            (d.getMonth() + 1).toString().padStart(2, '0') +
-            d.getDate().toString().padStart(2, '0') +
-            d.getHours().toString().padStart(2, '0') +
-            d.getMinutes().toString().padStart(2, '0');
-        const letters = Array.from(crypto.getRandomValues(new Uint8Array(6)))
-            .map(n => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[n % 24])
-            .join('');
-        return timePart + letters;
-    }
-
     updateHistoryDisplay() {
         const $list = $('.history-list').empty();
         this.history.slice(-5).reverse().forEach(record => {
             $list.append(`
                 <div class="history-item">
-                    <span>${record.code}</span>
+                    <span>${record.card} - ${record.name}</span>
                     <button class="copy-btn">📋</button>
                 </div>
             `);
@@ -111,7 +97,7 @@ class Lottery {
         this.$button.on('click', () => this.showCardModal());
         
         $(document).on('click', '.copy-btn', (e) => {
-            const text = $(e.target).prev().text();
+            const text = $(e.target).prev().text().split(' - ')[0];
             navigator.clipboard.writeText(text);
         });
 
@@ -255,11 +241,9 @@ class Lottery {
             return false;
         }
         
-        // 时间验证
         const timePart = card.slice(0, 12);
         const now = new Date();
         
-        // 解析时间
         const year = parseInt(timePart.slice(0,4)),
               month = parseInt(timePart.slice(4,6)) - 1,
               day = parseInt(timePart.slice(6,8)),
@@ -267,7 +251,6 @@ class Lottery {
               minute = parseInt(timePart.slice(10,12));
         const cardDate = new Date(year, month, day, hour, minute);
 
-        // 日期验证
         if (
             cardDate.getFullYear() !== now.getFullYear() ||
             cardDate.getMonth() !== now.getMonth() ||
@@ -277,7 +260,6 @@ class Lottery {
             return false;
         }
 
-        // 时间差验证
         const timeDiff = now - cardDate;
         if (timeDiff < 0 || timeDiff > 300000) {
             this.showAlert('卡密已失效');
@@ -344,9 +326,9 @@ class Lottery {
 
     recordHistory(prize) {
         try {
-            const code = this.generateCode(prize);
             this.history = [...this.history, { 
-                code,
+                card: this.currentCard,
+                name: prize.name,
                 id: prize.id,
                 timestamp: Date.now()
             }].slice(-this.historyLimit);
@@ -368,4 +350,57 @@ $.fn.lottery = function() {
 
 $(function() {
     $('.lot-grid').lottery();
+
+    window.showCardInfo = function() {
+        const modal = $(`
+            <div class="modal-wrapper">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <p>此活动只针对站长好友开放</p>
+                        <p>需赞赏后获取卡密：中奖率100%</p>
+                        <div class="wechat-row">
+                            <span>复制站长微信</span>
+                            <button class="copy-btn">📋 复制</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).appendTo('body');
+
+        modal.on('click', function(e) {
+            if ($(e.target).hasClass('modal-wrapper')) {
+                $(this).fadeOut(200, () => $(this).remove());
+            }
+        });
+
+        modal.find('.copy-btn').on('click', (e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText('LIVE-CS2025')
+                .then(() => $('<div class="alert-message">微信号已复制</div>')
+                    .appendTo('body').delay(2000).fadeOut(300, function() { 
+                        $(this).remove(); 
+                    }))
+                .catch(err => console.error('复制失败:', err));
+        });
+    };
+
+    window.showQRCode = function() {
+        const modal = $(`
+            <div class="modal-wrapper">
+                <div class="modal-content">
+                    <div class="qrcode-body">
+                        <h3>赞赏支持</h3>
+                        <img src="qrcode.jpg" alt="赞赏二维码" style="max-width:100%">
+                        <p>扫码赞赏后联系站长核验</p>
+                    </div>
+                </div>
+            </div>
+        `).appendTo('body');
+
+        modal.on('click', function(e) {
+            if ($(e.target).hasClass('modal-wrapper')) {
+                $(this).fadeOut(200, () => $(this).remove());
+            }
+        });
+    };
 });
